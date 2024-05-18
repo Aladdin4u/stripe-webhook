@@ -1,41 +1,46 @@
-import { config } from "dotenv";
-config();
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, set, onValue } from "firebase/database";
+const {
+  getFirestore,
+  Timestamp,
+  FieldValue,
+  Filter,
+} = require("firebase-admin/firestore");
+const { initializeApp, getApps, cert } = require("firebase-admin/app");
+
+const serviceAccount = require("./serviceAccountKey.json");
+
 const firebaseConfig = {
-  apiKey: process.env.APIKEY,
-  authDomain: process.env.AUTHDOMAIN,
-  databaseURL: process.env.DATABASEURL,
-  projectId: process.env.PROJECTID,
-  storageBucket: process.env.STORAGEBUCKET,
-  messagingSenderId: process.env.MSGSENDERID,
-  appId: process.env.APPID,
+  credential: cert(serviceAccount),
+  databaseURL: "https://shoppingcart-d80f0-default-rtdb.firebaseio.com",
 };
+const { getAuth } = require("firebase-admin/auth");
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase();
+const app = getApps();
 
-function writeUserData(receipt) {
-  const postListRef = ref(db, "receipt");
-  const newPostRef = push(postListRef);
-  set(newPostRef, receipt);
-}
-function getData() {
-  const dbRef = ref(db, "receipt");
-  onValue(
-    dbRef,
-    (snapshot) => {
-      snapshot.forEach((childSnapshot) => {
-        const childKey = childSnapshot.key;
-        const childData = childSnapshot.val();
-        console.log(childKey, ":", childData);
-      });
-    },
-    {
-      onlyOnce: true,
-    }
-  );
+if (!app.length) {
+  initializeApp(firebaseConfig);
 }
 
-export default writeUserData;
+const db = getFirestore();
+
+async function getUser(email) {
+  try {
+    const user = await getAuth().getUserByEmail(email);
+    return user.uid;
+  } catch (error) {
+    console.error("Error fetching user data: " + error);
+  }
+}
+async function createTransaction(userId, receipt) {
+  try {
+    const transactionRef = db.collection("transaction").doc();
+    const data = await transactionRef.set({
+      user_id: userId,
+      receipt_url: receipt,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+module.exports = { getUser, createTransaction };

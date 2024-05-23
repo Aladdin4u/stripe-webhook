@@ -10,7 +10,6 @@ const serviceAccount = require("./serviceAccountKey.json");
 
 const firebaseConfig = {
   credential: cert(serviceAccount),
-  databaseURL: "https://shoppingcart-d80f0-default-rtdb.firebaseio.com",
 };
 const { getAuth } = require("firebase-admin/auth");
 
